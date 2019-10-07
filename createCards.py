@@ -35,9 +35,9 @@ class Process:
             with open(self.dest_dir+self.process_dir+'/'+self.process_dir+'_proc_card.dat', "wt") as fout:
                 for line in fin:
                     if 'generate' in line:
-                        fout.write(line.replace('generate p p > Boson1 Boson2 j j QED=3 QCD=1 NP=1','generate p p > %s %s j j QED=3 QCD=1 NP=1' % (alias[self.X],alias[self.Y])))
+                        fout.write(line.replace('Boson1 Boson2',alias[self.X]+' '+alias[self.Y]))
                     elif 'output' in line:
-                        fout.write(line.replace('output aQGC_XhadYhadJJ_EWK_LO_NPle1 -nojpeg','output aQGC_%shad%shadJJ_EWK_LO_NPle1 -nojpeg' % (self.X,self.Y)))
+                        fout.write(line.replace('XhadYhad','%shad%shad' % (self.X,self.Y)))
                     else:
                         fout.write(line)
         os.remove(self.dest_dir+self.process_dir+'/'+self.templateName+'_proc_card.dat')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # parser.add_argument('bar', nargs='+', help='bar help')
 
     #make changes to these cards:
-    parser.add_argument('--cards',default='aQGC_XhadYhadJJ_EWK_LO_NPle1')
+    parser.add_argument('--cards',default='2016/aQGC_XhadYhadJJ_EWK_LO_NPle1/')
 
     #provide the directory where you want the cards:
     parser.add_argument('--dest',default='aQGC_VVjj_hadronic/')
