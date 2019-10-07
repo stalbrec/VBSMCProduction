@@ -1,6 +1,20 @@
 #!/usr/bin/env python
 import os,json
 
+def getJsonFromCSV(operators):
+    ranges={}
+    with open('range.csv') as csvFile:
+        i=0
+        for l in csvFile:
+            range_list=l.split(';')
+            range_list=[round(float(e.strip().replace(',','.')),2) for e in range_list ]
+            ranges.update({operators[i]:[i+1]+range_list})
+            i+=1
+    return ranges
+
+
+
+
 def getPointName_old(set,point):
     name="F%s_"%set
     # point=10*startx+i*10*increment
@@ -24,8 +38,8 @@ def getPointName(set,point):
 if(__name__=="__main__"):
     BosonChannel="VV"
     operators=["S0","S1","M0","M1","M2","M3","M4","M5","M6","M7","T0","T1","T2","T5","T6","T7","T8","T9"]
-
-    sets=json.load(open('range.json','r'))
+    sets=getJsonFromCSV(operators)
+    # sets=json.load(open('range.json','r'))
     # with open(BosonChannel+'Range.csv','rb') as csvfile:
     #     snippet=''
     #     snippet2=''
@@ -64,7 +78,7 @@ if(__name__=="__main__"):
         sum_points=0
 
         for op in operators:
-            for i in range(0,sets[op][1]):
+            for i in range(0,int(sets[op][1])):
                 point=100*sets[op][2]+i*100*sets[op][3]
                 fout.write("#******************** F%s ********************\n"%op)
                 fout.write("launch --rwgt_name=%s\n"%getPointName(op,point))
