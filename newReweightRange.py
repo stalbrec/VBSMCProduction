@@ -73,7 +73,7 @@ if(__name__=="__main__"):
     print(sets)
     with open(BosonChannel+"Range.dat","wt") as fout:
         fout.write("change helicity False\n")
-        fout.write("change rwgt_dir rwgt\n")
+        fout.write("change rwgt_dir rwgt")
         fout.write("\n\n")
         sum_points=0
 
@@ -83,8 +83,8 @@ if(__name__=="__main__"):
                 fout.write("#******************** F%s ********************\n"%op)
                 fout.write("launch --rwgt_name=%s\n"%getPointName(op,point))
                 if(sets[op][0]!=11):
-                    fout.write("        set anoinputs 11 0.000000e+00\n")
-                fout.write("        set anoinputs %i %8.6fe-12\n"%(sets[op][0],point/100))
+                    fout.write("\tset anoinputs 11 0.000000e+00\n")
+                fout.write("\tset anoinputs %i %8.6fe-12\n"%(sets[op][0],point/100))
                 fout.write("\n\n")
                 sum_points+=1
         print("Total number of reweighting points:", sum_points)
