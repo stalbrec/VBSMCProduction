@@ -1,16 +1,39 @@
 #!/usr/bin/env python
 import os,json
+anoinputs={
+"S0":[1,1],
+"S1":[2,2],
+# "S2":[-1,3],
+"M0":[3,4],
+"M1":[4,5],
+"M2":[5,6],
+"M3":[6,7],
+"M4":[7,8],
+"M5":[8,9],
+"M6":[9,10],
+"M7":[10,11],
+"T0":[11,12],
+"T1":[12,13],
+"T2":[13,14],
+"T5":[16,17],
+"T6":[17,18],
+"T7":[18,19],
+"T8":[19,20],    
+"T9":[20,21]
+}
 
-def getJsonFromCSV(operators):
-    ranges={}
-    with open('range.csv') as csvFile:
+def getJsonFromCSV(newModel=True,csvFileName='range_short.csv'):
+    ranges={} 
+    with open(csvFileName) as csvFile:
         i=0
         for l in csvFile:
-            range_list=l.split(';')
-            range_list=[round(float(e.strip().replace(',','.')),2) for e in range_list ]
-            ranges.update({operators[i]:[i+1]+range_list})
-            i+=1
+            info = l.split(';')
+            operator = str(info[0].replace('"',''))
+            anoinput = anoinputs[operator][1] if newModel else anoinputs[operator][0]
+            range_list=[round( float( e.strip().replace(',','.') ), 2 ) for e in info[1:] ]
+            ranges.update({operator:[anoinput]+range_list })
     return ranges
+
 
 
 
@@ -35,10 +58,37 @@ def getPointName(set,point):
         name = name.replace('-','m')
     return name
 
+
+def writeReweightCard(cardsName,newModel,csvFile):
+    operators=["S0","S1","S2","M0","M1","M2","M3","M4","M5","M6","M7","T0","T1","T2","T5","T6","T7","T8","T9"] if newModel else ["S0","S1","M0","M1","M2","M3","M4","M5","M6","M7","T0","T1","T2","T5","T6","T7","T8","T9"]
+    sets=getJsonFromCSV(newModel,csvFile)
+    with open(cardsName+'/'+cardsName.split('/')[-1]+"_reweight_card.dat","wt") as fout:
+        fout.write("change helicity False\n")
+        fout.write("change rwgt_dir rwgt")
+        fout.write("\n\n")
+        sum_points=0
+
+        for op in operators:
+            for i in range(0,int(sets[op][1])):
+                point=100*sets[op][2]+i*100*sets[op][3]
+                fout.write("\n#******************** F%s ********************"%op)
+                fout.write("\nlaunch --rwgt_name=%s"%getPointName(op,point))
+                if(newModel):
+                    if(sets[op][0]!=12):
+                        fout.write("\n\tset anoinputs 12 0.000000e+00")
+                else:
+                    if(sets[op][0]!=11):
+                        fout.write("\n\tset anoinputs 11 0.000000e+00")
+                        
+                fout.write("\n\tset anoinputs %i %8.6fe-12"%(sets[op][0],point/100))
+                # fout.write("\n\n")
+                sum_points+=1
+        
 if(__name__=="__main__"):
     BosonChannel="VV"
+    # operators=["S0","S1","S2","M0","M1","M2","M3","M4","M5","M6","M7","T0","T1","T2","T5","T6","T7","T8","T9"]
     operators=["S0","S1","M0","M1","M2","M3","M4","M5","M6","M7","T0","T1","T2","T5","T6","T7","T8","T9"]
-    sets=getJsonFromCSV(operators)
+    sets=getJsonFromCSV(newModel=False,csvFileName='range.csv')
     # sets=json.load(open('range.json','r'))
     # with open(BosonChannel+'Range.csv','rb') as csvfile:
     #     snippet=''
@@ -70,6 +120,8 @@ if(__name__=="__main__"):
     #     print('snippet for PDFHists:')
     #     print(snippet2)
 
+
+    
     print(sets)
     with open(BosonChannel+"Range.dat","wt") as fout:
         fout.write("change helicity False\n")
@@ -80,11 +132,11 @@ if(__name__=="__main__"):
         for op in operators:
             for i in range(0,int(sets[op][1])):
                 point=100*sets[op][2]+i*100*sets[op][3]
-                fout.write("#******************** F%s ********************\n"%op)
-                fout.write("launch --rwgt_name=%s\n"%getPointName(op,point))
+                fout.write("\n#******************** F%s ********************"%op)
+                fout.write("\nlaunch --rwgt_name=%s"%getPointName(op,point))
                 if(sets[op][0]!=11):
-                    fout.write("\tset anoinputs 11 0.000000e+00\n")
-                fout.write("\tset anoinputs %i %8.6fe-12\n"%(sets[op][0],point/100))
-                fout.write("\n\n")
+                    fout.write("\n\tset anoinputs 11 0.000000e+00")
+                fout.write("\n\tset anoinputs %i %8.6fe-12"%(sets[op][0],point/100))
+                # fout.write("\n\n")
                 sum_points+=1
         print("Total number of reweighting points:", sum_points)
