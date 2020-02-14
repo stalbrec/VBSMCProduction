@@ -73,8 +73,12 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    print(args)
+    print(args) 
 
+    copyRangeCardCommand="cp VVRange.dat %s/aQGC_XhadYhadJJ_EWK_LO_NPle1/aQGC_XhadYhadJJ_EWK_LO_NPle1_reweight_card.dat"%args.year
+    print(copyRangeCardCommand)
+    os.system(copyRangeCardCommand)
+    
     outDIR = args.dest+('' if args.dest[-1]=='/' else '/')
     outDIR += args.year+'/'
     if(not os.path.exists(outDIR)):
