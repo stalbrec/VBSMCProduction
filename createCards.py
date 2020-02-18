@@ -25,7 +25,8 @@ class Process:
                     if 'Boson1' in line:
                         fout.write(line.replace('Boson1',alias[self.X]))
                     elif 'Boson2' in line:
-                        fout.write(line.replace('Boson2',alias[self.Y]))
+                        if(self.X != self.Y):
+                            fout.write(line.replace('Boson2',alias[self.Y]))
                     else:
                         fout.write(line)
         os.remove(self.dest_dir+self.process_dir+'/'+self.templateName+'_madspin_card.dat')
