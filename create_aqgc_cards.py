@@ -62,26 +62,19 @@ class Process:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--year', nargs='?', default='2016')
-    # parser.add_argument('bar', nargs='+', help='bar help')
-
-    #make changes to these cards:
-    parser.add_argument('--cards',default='2016/aQGC_XhadYhadJJ_EWK_LO_NPle1/')
-
-    #provide the directory where you want the cards:
-    parser.add_argument('--dest',default='aQGC_VVjj_hadronic/')
+    parser.add_argument('--cards',default='aQGC_templates/2016/aQGC_XhadYhadJJ_EWK_LO_NPle1/', help='make changes to these cards')
+    parser.add_argument('--dest',default='aQGC_VVjj_hadronic/2016', help='provide the directory where you want the cards')
 
     
     args = parser.parse_args()
 
     print(args) 
 
-    copyRangeCardCommand="cp VVRange.dat %s/aQGC_XhadYhadJJ_EWK_LO_NPle1/aQGC_XhadYhadJJ_EWK_LO_NPle1_reweight_card.dat"%args.year
+    copyRangeCardCommand="cp VVRange.dat %s/aQGC_XhadYhadJJ_EWK_LO_NPle1_reweight_card.dat"%args.cards
     print(copyRangeCardCommand)
     os.system(copyRangeCardCommand)
     
     outDIR = args.dest+('' if args.dest[-1]=='/' else '/')
-    outDIR += args.year+'/'
     if(not os.path.exists(outDIR)):
        os.makedirs(outDIR)
      
