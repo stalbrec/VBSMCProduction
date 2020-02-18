@@ -62,7 +62,7 @@ class Process:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cards',default='aQGC_templates/2016/aQGC_XhadYhadJJ_EWK_LO_NPle1/', help='make changes to these cards')
+    parser.add_argument('--cards',default='templates/aQGC/2016/aQGC_XhadYhadJJ_EWK_LO_NPle1/', help='make changes to these cards')
     parser.add_argument('--dest',default='aQGC_VVjj_hadronic/2016', help='provide the directory where you want the cards')
 
     
