@@ -23,6 +23,17 @@ processes={
 alias={'WPM':'w+','WM':'w-','WP':'w+','W':'w+','Z':'z','A':'a','v':'vl','j':'j_nob','b':'b'}
 final_state_alias = {'vv':'NuNu','bb':'BB','jj':'JJ'}
 
+exclusion = {
+    'EWK':{
+        'top':["WP-WM","WPM-WPM","ZWPM"],
+        'higgs':processes.keys()
+    },
+    'QCD':{
+        'top':["WP-WM"],
+        'higgs': []
+    }
+}
+
 class Process:
     def __init__(self, process, final_states, order, template_dir, out_dir):
         self.bosons = process.split("-")
@@ -37,6 +48,21 @@ class Process:
         self.name += 'jj_'+order+'_LO'
         self.directory = out_dir+order+"/"+self.name+'/'
         os.makedirs(self.directory)
+
+        # self.exclusion_str = ""
+        self.exclusions = set()
+        if(self.EWK):
+            if(process in exclusion["EWK"]["top"]):
+                self.exclusions.add(" t t~")
+            if(process in exclusion["EWK"]["higgs"]):
+                self.exclusions.add(" h")
+        if(self.QCD):
+            if(process in exclusion["QCD"]["top"]):
+                self.exclusions.add(" t t~")
+            if(process in exclusion["QCD"]["higgs"]):
+                self.exclusions.add(" h")
+        print(order)
+        print('exclusion:',self.exclusions)
 
         
     def copy_run_card(self):
@@ -55,12 +81,12 @@ class Process:
             QCD_order = 99 if (self.QCD) else 0
             
             boson_str = ' '.join([alias[boson] for boson in self.bosons])
-
-            proc_card.write('generate p p > %s j j QED=%i QCD=%i'%(boson_str,EWK_order,QCD_order))
-            if('W' in self.bosons):
+            exclusion_str = ('/' if len(self.exclusions)>0 else '') + ''.join(self.exclusions)
+            proc_card.write('generate p p > %s j j %s QED=%i QCD=%i'%(boson_str,exclusion_str,EWK_order,QCD_order))
+            if('WPM' in self.bosons):
                 proc_card.write(' @ 1\n')
                 boson_str = boson_str.replace('+','-')
-                proc_card.write('add process p p > %s j j QED=%i QCD=%i @ 2'%(boson_str,EWK_order,QCD_order))
+                proc_card.write('add process p p > %s j j %s QED=%i QCD=%i @ 2'%(boson_str,exclusion_str,EWK_order,QCD_order))
             proc_card.write('\n')
             proc_card.write('output %s -nojpeg\n'%self.name)
             
