@@ -8,16 +8,19 @@ processes={
         ("bb","jj"),
         ("jj","jj")        
     ],
-    "Z-W":[
+    "Z-WPM":[
         ("vv","jj"),
         ("bb","jj"),
         ("jj","jj")        
     ],
-    "W-W":[
+    "WPM-WPM":[
+        ("jj","jj")        
+    ],
+    "WP-WM":[
         ("jj","jj")        
     ]
 }
-alias={'WM':'w-','WP':'w+','W':'w+','Z':'z','A':'a','v':'vl','j':'j','b':'b'}
+alias={'WPM':'w+','WM':'w-','WP':'w+','W':'w+','Z':'z','A':'a','v':'vl','j':'j_nob','b':'b'}
 final_state_alias = {'vv':'NuNu','bb':'BB','jj':'JJ'}
 
 class Process:
@@ -67,23 +70,24 @@ class Process:
             madspin_card.write("set BW_cut 15\n")
             madspin_card.write("set ms_dir ./madspingrid\n")
             madspin_card.write("set max_running_process 1\n")
-            if "Z" in self.bosons:
+            if 'vv' in self.final_states:
                 madspin_card.write("define vl = ve vm vt\n")
                 madspin_card.write("define vl~ = ve~ vm~ vt~\n")
-            if('j' in self.final_states[0]):
-                madspin_card.write('define j = u c d s u~ c~ d~ s~\n')
-                
+            if('j' in self.final_states[0] or 'j' in self.final_states[1]): # TODO: I think this is wrong. instead: 'j' in final_states[0] or final_states[1]
+                madspin_card.write('define j_nob = u c d s u~ c~ d~ s~\n')
+            
             decay_lines = set()
             for boson,final_state in zip(self.bosons,self.final_states):
-                boson = 'WP' if 'W' in boson else boson
+                # boson = 'WP' if 'W' == boson else boson
                 final_state = 'vv' if 'v' in final_state else final_state 
                 final_state_list = [alias[final_state[0]],alias[final_state[1]]+('' if 'j' in final_state else '~')]
-                if 'W' in self.bosons:
+                if 'wpm' == boson.lower():
                     decay_lines.add("decay %s > %s\n"%(alias['WP'],' '.join(final_state_list) ))
                     decay_lines.add("decay %s > %s\n"%(alias['WM'],' '.join(final_state_list) ))
                 else:
                     decay_lines.add("decay %s > %s\n"%(alias[boson],' '.join(final_state_list) ))
             madspin_card.writelines(decay_lines)
+            madspin_card.write("launch\n")
 
             
 if __name__ == "__main__":
