@@ -44,12 +44,11 @@ class Process:
         
         self.template_dir = template_dir
 
-        self.name = ''.join([self.bosons[i]+final_state_alias[self.final_states[i]] for i in range(2)])
+        self.name = ''.join([self.bosons[i]+final_state_alias[''.join(self.final_states[i])] for i in range(2)])
         self.name += 'jj_'+order+'_LO'
         self.directory = out_dir+order+"/"+self.name+'/'
         os.makedirs(self.directory)
 
-        # self.exclusion_str = ""
         self.exclusions = set()
         if(self.EWK):
             if(process in exclusion["EWK"]["top"]):
@@ -61,8 +60,6 @@ class Process:
                 self.exclusions.add(" t t~")
             if(process in exclusion["QCD"]["higgs"]):
                 self.exclusions.add(" h")
-        print(order)
-        print('exclusion:',self.exclusions)
 
         
     def copy_run_card(self):
@@ -96,7 +93,7 @@ class Process:
             madspin_card.write("set BW_cut 15\n")
             madspin_card.write("set ms_dir ./madspingrid\n")
             madspin_card.write("set max_running_process 1\n")
-            if 'vv' in self.final_states:
+            if('v' in self.final_states[0] or 'v' in self.final_states[1]):
                 madspin_card.write("define vl = ve vm vt\n")
                 madspin_card.write("define vl~ = ve~ vm~ vt~\n")
             if('j' in self.final_states[0] or 'j' in self.final_states[1]): # TODO: I think this is wrong. instead: 'j' in final_states[0] or final_states[1]
@@ -104,9 +101,7 @@ class Process:
             
             decay_lines = set()
             for boson,final_state in zip(self.bosons,self.final_states):
-                # boson = 'WP' if 'W' == boson else boson
-                final_state = 'vv' if 'v' in final_state else final_state 
-                final_state_list = [alias[final_state[0]],alias[final_state[1]]+('' if 'j' in final_state else '~')]
+                final_state_list = [alias[final_state[0]],alias[final_state[1]]+('' if 'j' in final_state[1] else '~')]
                 if 'wpm' == boson.lower():
                     decay_lines.add("decay %s > %s\n"%(alias['WP'],' '.join(final_state_list) ))
                     decay_lines.add("decay %s > %s\n"%(alias['WM'],' '.join(final_state_list) ))
@@ -118,8 +113,8 @@ class Process:
             
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cards',default='templates/SM/2016/', help='make changes to these cards (only run_cards)')
-    parser.add_argument('--dest',default='VVjj_hadronic/2016/', help='provide the directory where you want the cards')
+    parser.add_argument('--cards',default='templates/SM/2017/', help='make changes to these cards (only run_cards)')
+    parser.add_argument('--dest',default='VVjj_hadronic/2017/', help='provide the directory where you want the cards')
     parser.add_argument('--order',nargs='+',default=['EWK','QCD','EWK_QCD'], help='list of orders, e.g. default = [EWK,QCD,EWK_QCD]')
     
     
