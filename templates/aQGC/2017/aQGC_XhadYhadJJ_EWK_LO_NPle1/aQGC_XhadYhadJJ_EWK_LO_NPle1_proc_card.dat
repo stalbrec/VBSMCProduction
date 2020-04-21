@@ -1,8 +1,6 @@
 set group_subprocesses Auto
 set ignore_six_quark_processes False
 set complex_mass_scheme False
-import model SM_LS_LM_LT_UFO
-define p = g u c d s u~ c~ d~ s~
-define j = g u c d s u~ c~ d~ s~ b b~
+import model SM_Ltotal_Ind5v2020v2_UFO
 generate p p > Boson1 Boson2 j j QED=4 QCD=0 NP=1
 output aQGC_XhadYhadJJ_EWK_LO_NPle1 -nojpeg
