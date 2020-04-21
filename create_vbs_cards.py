@@ -3,15 +3,15 @@ from __future__ import print_function
 import os,sys,glob,argparse,shutil
 processes={
     "Z-Z":[
-        ("vv","jj"),
+        ("vv","j_nobj_nob"),
         ("vv","bb"),
-        ("bb","jj"),
+        ("bb","j_nobj_nob"),
         ("jj","jj")        
     ],
     "Z-WPM":[
         ("vv","jj"),
         ("bb","jj"),
-        ("jj","jj")        
+        ("j_nobj_nob","jj")        
     ],
     "WPM-WPM":[
         ("jj","jj")        
@@ -20,8 +20,9 @@ processes={
         ("jj","jj")        
     ]
 }
-alias={'WPM':'w+','WM':'w-','WP':'w+','W':'w+','Z':'z','A':'a','v':'vl','j':'j_nob','b':'b'}
-final_state_alias = {'vv':'NuNu','bb':'BB','jj':'JJ'}
+alias={'WPM':'w+','WM':'w-','WP':'w+','W':'w+','Z':'z','A':'a','v':'vl','j_nob':'j_nob','j':'j','b':'b'}
+# final_state_alias = {'vv':'2Nu','bb':'2B','j_nobj_nob':'2JnoB','jj':'2J'}
+final_state_alias = {'vv':'NuNu','bb':'BB','j_nobj_nob':'JJnoB','jj':'JJ'}
 
 exclusion = {
     'EWK':{
@@ -37,8 +38,7 @@ exclusion = {
 class Process:
     def __init__(self, process, final_states, order, template_dir, out_dir):
         self.bosons = process.split("-")
-        self.final_states = final_states
-        
+        self.final_states = [list(final_state) if 'nob' not in final_state else ['j_nob','j_nob'] for final_state in final_states]
         self.EWK = 'EWK' in order
         self.QCD = 'QCD' in order
         
@@ -96,7 +96,7 @@ class Process:
             if('v' in self.final_states[0] or 'v' in self.final_states[1]):
                 madspin_card.write("define vl = ve vm vt\n")
                 madspin_card.write("define vl~ = ve~ vm~ vt~\n")
-            if('j' in self.final_states[0] or 'j' in self.final_states[1]): # TODO: I think this is wrong. instead: 'j' in final_states[0] or final_states[1]
+            if('j_nob' in self.final_states[0] or 'j_nob' in self.final_states[1]):
                 madspin_card.write('define j_nob = u c d s u~ c~ d~ s~\n')
             
             decay_lines = set()
