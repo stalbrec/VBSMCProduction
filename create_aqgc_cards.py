@@ -62,7 +62,7 @@ class Process:
                         fout.write(line.replace('Boson1',alias[self.X]).replace('j j',' '.join(final_state_str_list[0])))
                     elif 'Boson2' in line:
                         # if(self.X != self.Y):
-                        if(self.final_states[0] != self.final_states[1]):
+                        if(self.X != self.Y or self.final_states[0] != self.final_states[1]):
                             fout.write(line.replace('Boson2',alias[self.Y]).replace('j j',' '.join(final_state_str_list[1])))
                     else:
                         fout.write(line)
