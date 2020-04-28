@@ -26,8 +26,8 @@ final_state_alias = {'vv':'NuNu','bb':'BB','j_nobj_nob':'JJnoB','jj':'JJ'}
 
 exclusion = {
     'EWK':{
-        'top':["WP-WM","WPM-WPM","ZWPM"],
-        'higgs':processes.keys()
+        'top':[],
+        'higgs':[]
     },
     'QCD':{
         'top':["WP-WM"],
@@ -73,12 +73,12 @@ class Process:
             proc_card.write('set loop_optimized_output True\n')
             proc_card.write('set complex_mass_scheme False\n')
             proc_card.write('import model sm-ckm_no_b_mass\n')
-            proc_card.write('define p = g u c d s u~ c~ d~ s~\n')
+            # proc_card.write('define p = g u c d s u~ c~ d~ s~\n')
             EWK_order = 4 if (self.EWK) else 2
             QCD_order = 99 if (self.QCD) else 0
             
             boson_str = ' '.join([alias[boson] for boson in self.bosons])
-            exclusion_str = ('/' if len(self.exclusions)>0 else '') + ''.join(self.exclusions)
+            exclusion_str = ('$' if len(self.exclusions)>0 else '') + ''.join(self.exclusions)
             proc_card.write('generate p p > %s j j %s QED=%i QCD=%i'%(boson_str,exclusion_str,EWK_order,QCD_order))
             if('WPM' in self.bosons):
                 proc_card.write(' @ 1\n')
