@@ -42,20 +42,34 @@ def getPointName(set,point):
     if('-' in name):
         name = name.replace('-','m')
     return name
-        
+
+def write_snippet(op,op_info):
+    f_snippet = open("snippet.cxx","a")
+    
+    n_points = op_info[1]
+    stepsize = op_info[3]
+    start = op_info[2]
+    end = round(op_info[1]*op_info[3]+op_info[2],2)
+    f_snippet.write('for(unsinged int i = 0; i < %i; i++){'%n_points)
+    f_snippet.write('//%s=[%i,%.2f,%.2f,%.2f]\n'%(op,n_points,stepsize,start,end))
+    f_snippet.write('\treweight_names.push_back(getParName("%s",%.2f,%.2f,i));\n'%(op,start,stepsize))
+    f_snippet.write('}\n')
+
 if(__name__=="__main__"):
     BosonChannel="VV"
     operators=["S0","S1","S2","M0","M1","M2","M3","M4","M5","M7","T0","T1","T2","T5","T6","T7","T8","T9"] #April2020 version
-    sets=getJsonFromCSV(csvFileName='range.csv')
+    sets=getJsonFromCSV(csvFileName='range_short_positive.csv')
     
     print(sets)
-    with open(BosonChannel+"Range.dat","wt") as fout:
+    with open(BosonChannel+"Range_short.dat","wt") as fout:
         fout.write("change helicity False\n")
         fout.write("change rwgt_dir rwgt")
         fout.write("\n\n")
         sum_points=0
-
+        if(os.path.isfile("snippet.cxx")):
+            os.system("rm snippet.cxx")
         for op in operators:
+            write_snippet(op,sets[op])
             for i in range(0,int(sets[op][1])):
                 point=100*sets[op][2]+i*100*sets[op][3]
                 fout.write("\n#******************** F%s ********************"%op)
