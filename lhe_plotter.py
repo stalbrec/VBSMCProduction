@@ -1,3 +1,5 @@
+# based on Andreas Albert's script here https://github.com/AndreasAlbert/mg5tut_apr21_plots/blob/master/plot_skeleton.py 
+
 import os
 
 import numpy as np
@@ -9,6 +11,7 @@ from matplotlib import pyplot as plt
 import mplhep as hep
 plt.style.use(hep.style.CMS)
 
+# for jet clustering using pyjet 
 import awkward as ak
 from pyjet import cluster
 from skhep.math import LorentzVector
@@ -103,21 +106,26 @@ def fill_hists(lhe_file,args):
         histograms['mVV'].fill(VV_p4.mass, weight=event.weights[0])
         histograms['mQQQQ'].fill(QQQQ_p4.mass, weight=event.weights[0])
 
-
+        
         #now lets look at some genjets. for this i use the fastjet python interface pyjet which takes a structured numpy array as input.
-        #the following gets all quarks (up to bs) in the event and puts it first in a array of LHEReader Particle objects:
+        #the following gets all (final state) quarks (up to bs) in the event and puts it first in a array of LHEReader Particle objects:
+        #quarks not originating from proton or first particle. < this is not useful
         # quarks = np.array(list(filter(lambda x: (abs(x.pdgid) in (1,2,3,4,5) and x.parent not in (-1,0)),event.particles)))
-        quarks = np.array(list(filter(lambda x: (abs(x.pdgid) in (1,2,3,4,5) and x.status==1),event.particles)))
+        #final state quarks
+        # particles_to_cluster = np.array(list(filter(lambda x: (abs(x.pdgid) in (1,2,3,4,5) and x.status==1),event.particles)))
+        #all final state particles
+        particles_to_cluster = np.array(list(filter(lambda x: x.status==1,event.particles)))
+
         #and then we use awkwards nice zip function to create a strucured but not ragged awkward array, which we convert to numpy. easy 
-        quarks_struc = ak.zip({
-            'pT':np.vectorize(lambda x:x.p4().pt)(quarks),
-            'eta':np.vectorize(lambda x:x.p4().eta)(quarks),
-            'phi':np.vectorize(lambda x:x.p4().phi())(quarks),
-            'mass':np.vectorize(lambda x:x.p4().mass)(quarks)
+        particles_to_cluster_struc = ak.zip({
+            'pT':np.vectorize(lambda x:x.p4().pt)(particles_to_cluster),
+            'eta':np.vectorize(lambda x:x.p4().eta)(particles_to_cluster),
+            'phi':np.vectorize(lambda x:x.p4().phi())(particles_to_cluster),
+            'mass':np.vectorize(lambda x:x.p4().mass)(particles_to_cluster)
         }).to_numpy()
                 
         #cluster genkt jets with R=0.8
-        sequence = cluster(quarks_struc, R=0.8, p=-1)
+        sequence = cluster(particles_to_cluster_struc, R=0.8, p=-1)
         jets = sequence.inclusive_jets()
 
         #PseudoJets from pyjet do not have any real structure -> converting to LorentzVector (from skhep.math)
