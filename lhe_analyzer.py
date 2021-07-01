@@ -18,8 +18,8 @@ from skhep.math import LorentzVector
 
 
 
-def plot(histograms):
-    outdir = './plots/'
+def plot(histograms,selection):
+    outdir = f'./plots/{selection}'
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
@@ -40,6 +40,7 @@ def plot(histograms):
 
 def setup_histograms():
     bins ={
+        'pdgId':np.linspace(0,30,31),
         'mV' : np.linspace(0,200,101),
         'mVV' : np.linspace(0,3000,151),
         'mQQ' : np.linspace(0,200,101),
@@ -69,15 +70,26 @@ def setup_histograms():
 
     return histograms
 
-def fill_hists(lhe_file,args):    
+selections = {
+    '2Jets':lambda x: (x.jets[0].pt>200 and x.jets[1].pt>200),
+    'MJJ500':lambda x: (x.jets[0].pt>200 and x.jets[1].pt>200) and ((x.jets[0]+x.jets[1]).mass >500),
+}
+
+def fill_hists(lhe_file,selection,args):    
     reader = LHEReader(lhe_file)
     histograms = setup_histograms()
-
+ 
     ievent = 0
     for event in reader:
         if(args.maxEvents > 0 and ievent>args.maxEvents):
             break
         ievent += 1
+
+
+        for p in event.particles:
+            histograms['pdgId'].fill(p.pdgid,weight=event.weights[0])
+
+
         v_pdgids = [23,24]
         vector_indices = [i for i in range(len(event.particles)) if abs(event.particles[i].pdgid) in v_pdgids]
         v_decants = []
@@ -131,11 +143,13 @@ def fill_hists(lhe_file,args):
         #PseudoJets from pyjet do not have any real structure -> converting to LorentzVector (from skhep.math)
         def p4(a):
             return LorentzVector(a.px, a.py, a.pz, a.e)
+        event.jets = [p4(jet) for jet in jets]
 
-        if(len(jets)>1):
+        if(len(jets)>1 and selections[selection](event)):
             JJ = None
             for ijet in [0,1]:
-                jet = p4(jets[ijet])            
+                jet = event.jets[ijet]
+                # jet = p4(jets[ijet])            
                 if JJ:
                     JJ += jet
                 else:
@@ -161,10 +175,12 @@ if(__name__=='__main__'):
     
     lhe_files = {
         # 'oldGridpack':'/nfs/dust/cms/user/albrechs/VBS/VBS_SM/gridpacks/test2_lightq/cmsgrid_final.lhe',
-        'jetNoB':'/nfs/dust/cms/user/albrechs/VBS/b_veto_test/osWW_Jnob/cmsgrid_final.lhe',        
-        'Summer19Gridpack':'/nfs/dust/cms/user/albrechs/VBS/b_veto_test/osWW_withB/cmsgrid_final.lhe'
+        'osWW EWK - jetNoB':'/nfs/dust/cms/user/albrechs/VBS/b_veto_test/osWW_Jnob/cmsgrid_final.lhe',        
+        'osWW EWK - Summer19Gridpack':'/nfs/dust/cms/user/albrechs/VBS/b_veto_test/osWW_withB/cmsgrid_final.lhe',
+        # 'ZbbW EWK - Summer19Gridpack':'/nfs/dust/cms/user/albrechs/VBS/b_veto_test/ZbbW_withB/cmsgrid_final.lhe'
     }
 
-    hists  = {s:fill_hists(lhe_files[s],args) for s in lhe_files.keys()}
+    for selection in selections.keys():
+        hists  = {s:fill_hists(lhe_files[s],selection,args) for s in lhe_files.keys()}
 
-    plot(hists)
+        plot(hists,selection)
