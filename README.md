@@ -15,4 +15,4 @@ required packages:
 
 ## nanoAOD style LHE-root files
 
-converting with `conver_lhe.py` requires `uproot-4.1.2` and local installation of my `pylhe` branch: (https://github.com/stalbrec/pylhe/tree/nanoaodstyle)[github.com:stalbrec/pylhe/nanoaodstyle]
+converting with `conver_lhe.py` requires `uproot-4.1.2` and local installation of my `pylhe` branch: [github.com:stalbrec/pylhe/nanoaodstyle](https://github.com/stalbrec/pylhe/tree/nanoaodstyle)
