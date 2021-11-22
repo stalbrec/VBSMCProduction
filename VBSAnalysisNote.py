@@ -9,9 +9,9 @@ class NanoProcessor(processor.ProcessorABC):
         def get_common_axes(var_name,max_pt=2000,max_mass=200):
             return (
                 hist.Cat("dataset", "Dataset"),
-                hist.Bin("mass", "$m_{%s}$ [GeV]"%var_name, 60, 0, max_mass),
-                hist.Bin("pt", "$p_{T,%s}$ [GeV]"%var_name, 60, 0, max_pt),
-                hist.Bin("eta", r"$\eta_{%s}$ [GeV]"%var_name, 60, -6,6),                
+                hist.Bin("mass", "$m_{\mathrm{%s}}$ [GeV]"%var_name, 60, 0, max_mass),
+                hist.Bin("pt", "$p_{T,\mathrm{%s}}$ [GeV]"%var_name, 60, 0, max_pt),
+                hist.Bin("eta", r"$\eta_{\mathrm{%s}}$ [GeV]"%var_name, 60, -6,6),                
             )
         
         self._accumulator = processor.dict_accumulator({

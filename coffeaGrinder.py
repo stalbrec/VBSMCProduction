@@ -96,14 +96,15 @@ if(__name__ == "__main__"):
         
         
         print('HTCondorCluster created')
-        print(cluster.job_script())
+        # print(cluster.job_script())
+        print(f'scale out to {args.scaleout}*{args.workers} threads.')
         cluster.adapt(minimum=args.scaleout*args.workers)
         print('submitted jobs to spawn dask-workers')
         client = Client(cluster)
         print('waiting for at least 1 dask-worker to have started...')
         client.wait_for_workers(1)
 
-        with performance_report(filename="/afs/desy.de/user/a/albrechs/www/dask-report.html"):
+        with performance_report(filename=f"{os.environ['HOME']}/www/dask-report.html"):
             output = processor.run_uproot_job(samples,
                                               treename="Events",
                                               processor_instance = processor_instance,
