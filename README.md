@@ -16,3 +16,15 @@ required packages:
 ## nanoAOD style LHE-root files
 
 converting with `conver_lhe.py` requires `uproot-4.1.2` and local installation of my `pylhe` branch: [github.com:stalbrec/pylhe/nanoaodstyle](https://github.com/stalbrec/pylhe/tree/nanoaodstyle)
+
+
+## coffeaGrinder
+
+in order to submit dask worker to HTCondor@DESY i had to modify dask-jobqueue very minimally. So make sure to use my fork:
+
+```
+git clone -b htcondor-desy https://github.com/stalbrec/dask-jobqueue
+cd dask-jobqueue
+pip install -e .
+```
+
