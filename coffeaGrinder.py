@@ -25,10 +25,8 @@ if(__name__ == "__main__"):
     
     args = parser.parse_args()
 
-    # __import__(args.processor)
-    # processor_instance = sys.modules[args.processor].NanoProcessor
-    import VBSAnalysisNote
-    processor_instance = VBSAnalysisNote.NanoProcessor()
+    __import__(args.processor)
+    processor_instance = sys.modules[args.processor].NanoProcessor()
 
     print(f'using NanoProcessor from {args.processor} {processor_instance}')
     import json
