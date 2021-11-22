@@ -3,10 +3,6 @@
 # https://github.com/cms-btv-pog/BTVNanoCommissioning/blob/master/runner.py
 
 
-from dask_jobqueue import HTCondorCluster
-from distributed import Client
-from dask.distributed import performance_report
-
 from coffea.util import save
 from coffea import processor
 
@@ -38,9 +34,25 @@ if(__name__ == "__main__"):
     import json
     samples = json.load(open(args.samples))
 
+    tidy_dataset = {
+        '_TuneCP5_13TeV-madgraph-madspin-pythia8':'',
+        '-NANOAODSIMv9':'',
+    }
+    def clean_dataset_name(s):
+        for k,v in tidy_dataset.items():
+            s = s.replace(k,v)
+        return s
+    
+    
+    samples = {clean_dataset_name(k):v for k,v in samples.items()}
+
     _x509_path='/afs/desy.de/user/a/albrechs/.globus/voms.dat'
     
     if(args.condor):
+        from dask_jobqueue import HTCondorCluster
+        from distributed import Client
+        from dask.distributed import performance_report
+        
         env_extra = []
         condor_extra = []
         
