@@ -2,6 +2,7 @@
 from __future__ import print_function
 import os,sys,glob,argparse,shutil
 import card_util
+import reweight_range as rw
 
 alias={
     'WPM':'w+','WM':'w-','WP':'w+','W':'w+',
@@ -9,14 +10,15 @@ alias={
     'v':'vl',
     'v~':'vl~',
     'j_nob':'j_nob','j':'j',
-    'lp':'l+','lm':'l-','v~':'vl~'
+    'lp':'l+','lm':'l-','v~':'vl~',
+    'b':'b'
 }
 
 final_state_alias = {'vv':'NuNu','bb':'BB','j_nobj_nob':'JJnoB','jj':'JJ','lmv':'lep','lpv':'lep'}
 
 
 class Process(object):
-    def __init__(self, args, process, final_states, order, template_dir, out_dir, ufo_model = 'sm-ckm_no_b_mass',name_suffix=''):
+    def __init__(self, args, process, final_states, order, template_dir, out_dir, ufo_model = 'sm-ckm_no_b_mass',name_suffix='',name_prefix=''):
         self.bosons = process.split("-")
 
         self.final_states = [list(final_state) for final_state in final_states]
@@ -25,9 +27,10 @@ class Process(object):
         self.QCD = 'QCD' in order
         
         self.template_dir = template_dir
-
-        self.name = ''.join([self.bosons[i]+final_state_alias[''.join(self.final_states[i]).replace("~","")] for i in range(2)])
+        
+        self.name = name_prefix + ''.join([self.bosons[i]+final_state_alias[''.join(self.final_states[i]).replace("~","")] for i in range(2)])
         self.name += 'jj_'
+                
         if(args.semilep):
             self.name = self.name.replace("JJ","had")
             self.name = self.name.replace("jj","JJ")
@@ -53,6 +56,12 @@ class Process(object):
             'proc':    'u c d s u~ c~ d~ s~ b b~'
         }
 
+    def write_card(self, name_suffix, content):
+        if(content == ''):
+            return
+        with open(self.directory+self.name+name_suffix,'w+') as card:
+            card.write(f"{content}\n")
+    
     @property
     def model(self):
         return self._model
@@ -60,7 +69,7 @@ class Process(object):
     @model.setter
     def model(self, model):
         self._model = model
-        self._flavour_scheme = 5 if 'no_b_mass' in model else 4
+        self._flavour_scheme = 5 if ('no_b_mass' in model or "Quartic" in model) else 4
         
     def write_cards(self):
         #copy run card
@@ -69,10 +78,12 @@ class Process(object):
               self.bosons[1], '->', self.final_states[1],
               ('EWK' if self.EWK else ''), ('QCD' if self.QCD else ''))
 
-        os.system('cp '+self.template_dir+f'run_card{"_semilep" if args.semilep else ""}.dat '+self.directory+self.name+'_run_card.dat')
+        # os.system('cp '+self.template_dir+f'run_card{"_semilep" if args.semilep else ""}.dat '+self.directory+self.name+'_run_card.dat')
+        os.system('cp '+self.template_dir+f'run_card{"_semilep" if args.semilep else ""}{"_4f" if args.comparisonSamples else ""}.dat '+self.directory+self.name+'_run_card.dat')
 
         self.write_proc_card()
-        # self.write_madspin_card()
+        if(args.madspin):
+            self.write_madspin_card()
         
     def write_proc_card(self):
         with open(self.directory+self.name+'_proc_card.dat','w+') as proc_card:
@@ -91,60 +102,79 @@ class Process(object):
                 proc_card.write('define j = %s\n'%self.jet_definition['proc'])
             print(self.final_states)
 
-            if(any('v' in f for f in self.final_states)):
-                proc_card.write("define vl = ve vm vt\n")
-            if(any('v~' in f for f in self.final_states)):
-                proc_card.write("define vl~ = ve~ vm~ vt~\n")
+            if(not args.madspin):
+                if(any('v' in f for f in self.final_states)):
+                    proc_card.write("define vl = ve vm vt\n")
+                if(any('v~' in f for f in self.final_states)):
+                    proc_card.write("define vl~ = ve~ vm~ vt~\n")
 
-            if(any('lp' in f for f in self.final_states)):
-                proc_card.write("define l+ = e+ mu+ ta+\n")
-            if(any('lm' in f for f in self.final_states)):
-                proc_card.write("define l- = e- mu- ta-\n")
+                if(any('lp' in f for f in self.final_states)):
+                    proc_card.write("define l+ = e+ mu+ ta+\n")
+                if(any('lm' in f for f in self.final_states)):
+                    proc_card.write("define l- = e- mu- ta-\n")
 
-            if(('j_nob' in self.final_states[0] or 'j_nob' in self.final_states[1]) and self._flavour_scheme == 5):
-                proc_card.write('define j_nob = u c d s u~ c~ d~ s~\n')
+                if(('j_nob' in self.final_states[0] or 'j_nob' in self.final_states[1]) and self._flavour_scheme == 5):
+                    proc_card.write('define j_nob = u c d s u~ c~ d~ s~\n')
 
             EWK_order = 4 if (self.EWK) else 2
             QCD_order = 99 if (self.QCD) else 0
             
             boson_str = ' '.join([alias.get(boson,boson) for boson in self.bosons])
+            additional_orders = ""
 
-            # decays = set([f"{alias[self.bosons[i]]} > {alias[self.final_states[i][0]]} {alias[self.final_states[i][1]]+('' if 'j' in self.final_states[i][1] else '~')}" for i in range(len(self.bosons))])
+            if(args.aqgc):
+                additional_orders += rw.get_order_string()
+
+            
             decays = dict.fromkeys([f"{alias.get(self.bosons[i],self.bosons[i])} > {alias.get(self.final_states[i][0],self.final_states[i][0])} {alias.get(self.final_states[i][1],self.final_states[i][1])}" for i in range(len(self.bosons))])
-            print(decays)
-            decay_str = ", ".join(s for s in decays)
-            print(decay_str)
-            proc_card.write(f'generate p p > {boson_str} j j  QED={EWK_order} QCD={QCD_order}, {decay_str}')
+            decay_str = "" if args.madspin else (", "+ ", ".join(s for s in decays))
+            
+            proc_card.write(f'generate p p > {boson_str} j j  QED={EWK_order} QCD={QCD_order}{additional_orders}{decay_str}')
             if('WPM' in self.bosons):
                 proc_card.write(' @ 1\n')
                 boson_str = boson_str.replace('+','-')
                 decay_str = decay_str.replace('+','-')
-                proc_card.write(f'add process p p > {boson_str} j j  QED={EWK_order} QCD={QCD_order}, {decay_str} @ 2')
+                proc_card.write(f'add process p p > {boson_str} j j  QED={EWK_order} QCD={QCD_order}{decay_str} @ 2')
                 # proc_card.write('add process p p > %s j j  QED=%i QCD=%i @ 2'%(boson_str,EWK_order,QCD_order))
             proc_card.write('\n')
             proc_card.write(f'output {self.name} {"-" if args.semilep else ""}-nojpeg\n')
             
 
     def write_madspin_card(self):
-        with open(self.directory+self.name+'_madspin_card.dat','wb') as madspin_card:
+        with open(self.directory+self.name+'_madspin_card.dat','w+') as madspin_card:
             madspin_card.write("set BW_cut 15\n")
             madspin_card.write("set ms_dir ./madspingrid\n")
             madspin_card.write("set max_running_process 1\n")
-            if('v' in self.final_states[0] or 'v' in self.final_states[1]):
+            if(any('v' in f for f in self.final_states)):
                 madspin_card.write("define vl = ve vm vt\n")
+            if(any('v~' in f for f in self.final_states)):
                 madspin_card.write("define vl~ = ve~ vm~ vt~\n")
-            if('l' in self.final_states[0] or 'l' in self.final_states[1]):
-                madspin_card.write("define l = ve vm vt\n")
-                madspin_card.write("define l- = e- m- vt~\n")
-
-            if('j_nob' in self.final_states[0] or 'j_nob' in self.final_states[1]):
+            
+            if(any('lp' in f for f in self.final_states)):
+                madspin_card.write("define l+ = e+ mu+ ta+\n")
+            if(any('lm' in f for f in self.final_states)):
+                madspin_card.write("define l- = e- mu- ta-\n")
+            
+            if(('j_nob' in self.final_states[0] or 'j_nob' in self.final_states[1]) and self._flavour_scheme == 5):
                 madspin_card.write('define j_nob = u c d s u~ c~ d~ s~\n')
+
+            # if('v' in self.final_states[0] or 'v' in self.final_states[1]):
+            #     madspin_card.write("define vl = ve vm vt\n")
+            #     madspin_card.write("define vl~ = ve~ vm~ vt~\n")
+            # if('l' in self.final_states[0] or 'l' in self.final_states[1]):
+            #     madspin_card.write("define l = ve vm vt\n")
+            #     madspin_card.write("define l- = e- m- vt~\n")
+
+            # if('j_nob' in self.final_states[0] or 'j_nob' in self.final_states[1]):
+            #     madspin_card.write('define j_nob = u c d s u~ c~ d~ s~\n')
 
             # if((self._flavour_scheme == 4 and 'b' in self.proton_definition['madspin']) or (self._flavour_scheme == 5 and 'b' not in self.proton_definition['madspin'])):
             #     madspin_card.write('define p = %s\n'%self.proton_definition['madspin'])
 
             if((self._flavour_scheme == 4 and 'b' in self.jet_definition['madspin']) or (self._flavour_scheme == 5 and 'b' not in self.jet_definition['madspin'])):
                 madspin_card.write('define j = %s\n'%self.jet_definition['madspin'])
+
+            # decays = dict.fromkeys([f"decay {alias.get(self.bosons[i],self.bosons[i])} > {alias.get(self.final_states[i][0],self.final_states[i][0])} {alias.get(self.final_states[i][1],self.final_states[i][1])}" for i in range(len(self.bosons))])
 
             decay_lines = set()
             for boson,final_state in zip(self.bosons,self.final_states):
@@ -165,6 +195,9 @@ if __name__ == "__main__":
     parser.add_argument('--test',action='store_true',help='parse produced cards for errors using genproduction parsing script')
     parser.add_argument('--comparisonSamples',action='store_true',help='write cards for comparison samples (osWW and WZ with 4f scheme but bs in jets in madspin card.)')
     parser.add_argument('--semilep',action='store_true',help='write cards for semileptonic samples')
+    parser.add_argument('--aqgc',action='store_true',help='write cards for aQGC samples')
+    parser.add_argument('--madspin',action='store_true',help='use madspin to decay bosons')
+    
     
     
     args = parser.parse_args()
@@ -179,74 +212,146 @@ if __name__ == "__main__":
 
     jet_no_b = 'u c d s u~ c~ d~ s~'
 
-    processes_4f_comparison = {
-        "WP-WM":[
+    processes = {
+        "4f_hadronic":{
+            "WP-WM":[
+                (("j","j"),("j","j"))
+            ],
+            "Z-WPM":[
+                (("v","v~"),("j","j")),
+                (("b","b~"),("j","j")),
+                (("j","j"),("j","j"))
+            ]
+        },
+        
+        "5f_hadronic":{
+            "Z-Z":[
+                (("v","v~"),("j_nob","j_nob")),
+                (("v","v~"),("j","j")),
+                (("v","v~"),("b","b~")),
+                (("b","b~"),("j_nob","j_nob")),
+                (("j","j"),("j","j"))        
+            ],
+            "Z-WPM":[
+                (("v","v~"),("j","j")),
+                (("b","b~"),("j","j")),
+                (("j_nob","j_nob"),("j","j"))
+            ],
+            "WPM-WPM":[
             (("j","j"),("j","j"))
-        ],
-        "Z-WPM":[
-            (("v","v~"),("j","j")),
-            (("b","b~"),("j","j")),
-            (("j_nob","j_nob"),("j","j"))
-        ]
+            ],
+            "WP-WM":[
+                (("j","j"),("j","j"))
+            ]
+        },
+
+        "5f_semilep":{
+            "WM-Z":[
+                (("lm","v~"),("j","j"))
+            ],
+            "WP-Z":[
+                (("lp","v"),("j","j"))
+            ],
+            "WP-WM":[            
+                (("j","j"),("lm","v~")),
+                (("lp","v"),("j","j")),
+            ],
+            "WP-WP":[
+                (("lp","v"),("j","j")),
+            ],
+            "WM-WM":[
+                (("lm","v~"),("j","j")),
+            ],
+        },
+        
+        "4f_semilep":{},
+
+        "5f_aqgc_hadronic":{
+            'WP-WP':[
+                (("j","j"),("j","j"))
+            ],
+            'WM-WM':[
+                (("j","j"),("j","j"))
+            ],
+            'WP-WM':[
+                (("j","j"),("j","j"))
+            ],
+            'WP-Z':[
+                (("j","j"),("j","j"))
+            ],
+            'WM-Z':[
+                (("j","j"),("j","j"))
+            ],
+            'Z-Z':[
+                (("v","v"),("j_nob","j_nob")),
+                (("bb"),("j_nob","j_nob")),
+                (("j","j"),("j","j"))        
+            ]
+        },
+        
+        "4f_aqgc_hadronic":{},
+
+        "5f_aqgc_semilep":{
+            "WM-Z":[
+                (("lm","v~"),("j","j"))
+            ],
+            "WP-Z":[
+                (("lp","v"),("j","j"))
+            ],
+            "WP-WM":[            
+                (("j","j"),("lm","v~")),
+                (("lp","v"),("j","j")),
+            ],
+            "WP-WP":[
+                (("lp","v"),("j","j")),
+            ],
+            "WM-WM":[
+                (("lm","v~"),("j","j")),
+            ],
+        },
+        
+        "4f_aqgc_semilep":{},        
     }
 
-    processes_5f_hadronic={
-        "Z-Z":[
-            (("v","v~"),("j_nob","j_nob")),
-            (("v","v~"),("j","j")),
-            (("v","v~"),("b","b~")),
-            (("b","b~"),("j_nob","j_nob")),
-            (("j","j"),("j","j"))        
-        ],
-        "Z-WPM":[
-            (("v","v~"),("j","j")),
-            (("b","b~"),("j","j")),
-            (("j_nob","j_nob"),("j","j"))
-        ],
-        "WPM-WPM":[
-            (("j","j"),("j","j"))
-        ],
-        "WP-WM":[
-            (("j","j"),("j","j"))
-        ]
-        }
-
-    processes_5f_semilep={
-        "WM-Z":[
-            (("lm","v~"),("j","j"))
-        ],
-        "WP-Z":[
-            (("lp","v"),("j","j"))
-        ],
-        "WP-WM":[            
-            (("j","j"),("lm","v~")),
-            (("lp","v"),("j","j")),
-        ],
-        "WP-WP":[
-            (("lp","v"),("j","j")),
-        ],
-        "WM-WM":[
-            (("lm","v~"),("j","j")),
-        ],
-        }
-
-    if(args.semilep):
-        processes_5f_base = processes_5f_semilep
-    else:
-        processes_5f_base = processes_5f_hadronic
-
+    procs = ""
+    name_suffix = ""
+    name_prefix = ""
+    ufo_model = ""
+    extra_model = ""
+    
     if(args.comparisonSamples):
-        processes = processes_4f_comparison
+        procs += "4f_"
+        ufo_model = "sm"
     else:
-        processes = processes_5f_base
-        
+        procs += "5f_"
+        ufo_model = "sm-ckm_no_b_mass"
 
+    if(args.aqgc):
+        procs += "aqgc_"
+        name_prefix = "aQGC_"
+        name_suffix = "_NPle1"
+        ufo_model = "Quartic_5_Aug21" if args.comparisonSamples else "QuarticCKM_5_Aug21"
+        extra_model = "quartic21v2.tgz" if args.comparisonSamples else "quarticCKM21v2.tgz"
+        args.order = ['EWK']
+    if(args.semilep):
+        procs += "semilep"
+        name_suffix = "_SM_mjj100_pTj10"
+    else:
+        procs += "hadronic"
+        
     for order in args.order:
-        for bosons, final_states in processes.items():
+        for bosons, final_states in processes[procs].items():
             for final_state in final_states:
                 # for madspin_jet_definition,proc_jet_definition in [(jet,jet),(jet_nob,jet),(jet_nob,jet_nob)]:
 
-                this_process = Process(args, bosons, final_state, order, args.cards, outDIR, ufo_model =  'sm' if args.comparisonSamples else 'sm-ckm_no_b_mass',name_suffix='_SM_mjj100_pTj10' if args.semilep else '')
+                this_process = Process(args, bosons, final_state, order, args.cards, outDIR, ufo_model = ufo_model ,name_suffix=name_suffix, name_prefix = name_prefix)
+
+                if(args.aqgc):
+                    this_process.write_card("_extramodels.dat",extra_model)
+                    # this_process.write_card("_reweight_card.dat",rw.get_reweighting_card_content("range_veryshort_positive.csv"))
+                    this_process.write_card("_reweight_card.dat",rw.get_reweighting_card_content("range.csv"))
+                    this_process.write_card("_customizecards.dat",rw.get_customize_card_content({"T0":6.5e-12}))
+                    
                 # this_process.jet_definition['proc'] = 'u c d s u~ c~ d~ s~'
                 # this_process.jet_definition['madspin'] = 'u c d s u~ c~ d~ s~'
 
