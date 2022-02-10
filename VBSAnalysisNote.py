@@ -6,27 +6,31 @@ from coffea import hist
 
 class NanoProcessor(processor.ProcessorABC):
     def __init__(self):
-        def get_common_axes(var_name,max_pt=2000,max_mass=200):
+        def get_common_axes(var_name,max_pt=2000,max_mass=2000):
             return (
                 hist.Cat("dataset", "Dataset"),
-                hist.Bin("mass", "$m_{\mathrm{%s}}$ [GeV]"%var_name, 60, 0, max_mass),
-                hist.Bin("pt", "$p_{T,\mathrm{%s}}$ [GeV]"%var_name, 60, 0, max_pt),
-                hist.Bin("eta", r"$\eta_{\mathrm{%s}}$ [GeV]"%var_name, 60, -6,6),                
+                hist.Bin("mass", "$m_{\mathrm{%s}}$ [GeV]"%var_name, 100, 0, max_mass),
+                hist.Bin("pt", "$p_{T,\mathrm{%s}}$ [GeV]"%var_name, 100, 0, max_pt),
+                hist.Bin("eta", r"$\eta_{\mathrm{%s}}$ [GeV]"%var_name, 60, -6,6),
             )
         
         self._accumulator = processor.dict_accumulator({
             "sumw": processor.defaultdict_accumulator(float),
             "VV": hist.Hist("Events",*get_common_axes("VV",max_mass=3000,max_pt=3000)),
             
-            "J0": hist.Hist("Events",*get_common_axes("leading Ak8")),
-            "J1": hist.Hist("Events",*get_common_axes("sub-leading Ak8")),
-            "JJ": hist.Hist("Events",*get_common_axes("JJ",max_mass=3000,max_pt=3000)),
-            "JJ_mJJ500": hist.Hist("Events",*get_common_axes("JJ",max_mass=3000,max_pt=3000)),
+            "AK8J0": hist.Hist("Events",*get_common_axes("leading Ak8",max_mass=300)),
+            "AK8J1": hist.Hist("Events",*get_common_axes("sub-leading Ak8",max_mass=300)),
+            "AK8JJ": hist.Hist("Events",*get_common_axes("JJ",max_mass=3000,max_pt=3000)),
+            "AK8JJ_mJJ500": hist.Hist("Events",*get_common_axes("JJ",max_mass=3000,max_pt=3000)),
 
-            "j0": hist.Hist("Events",*get_common_axes("leading Ak4")),
-            "j1": hist.Hist("Events",*get_common_axes("sub-leading Ak4")),
-            "jj": hist.Hist("Events",*get_common_axes("jj")),
-            "jj_mjj500": hist.Hist("Events",*get_common_axes("jj")),
+            "AK8J0_topveto": hist.Hist("Events",*get_common_axes("leading Ak8",max_mass=300)),
+            "AK8J1_topveto": hist.Hist("Events",*get_common_axes("sub-leading Ak8",max_mass=300)),
+            "AK8JJ_topveto": hist.Hist("Events",*get_common_axes("JJ",max_mass=3000,max_pt=3000)),
+
+            "AK4j0": hist.Hist("Events",*get_common_axes("leading Ak4",max_mass=300)),
+            "AK4j1": hist.Hist("Events",*get_common_axes("sub-leading Ak4",max_mass=300)),
+            "AK4jj": hist.Hist("Events",*get_common_axes("jj",max_mass=3000,max_pt=3000)),
+            "AK4jj_mjj500": hist.Hist("Events",*get_common_axes("jj",max_mass=3000,max_pt=3000)),
         })
 
     @property
@@ -54,45 +58,61 @@ class NanoProcessor(processor.ProcessorABC):
         )
 
         
-        Js = events.FatJet
+        # Js = events.FatJet
+        Js = events.GenJetAK8
         
         # 2 FatJets
         cut = (ak.num(Js)>=2)        
 
         J0,J1 = Js[cut][:,0],Js[cut][:,1]
         for iJ,J in enumerate([J0,J1]):
-            output[f'J{iJ}'].fill(dataset=dataset, mass=J.mass, pt=J.pt, eta=J.eta)
+            output[f'AK8J{iJ}'].fill(dataset=dataset, mass=J.mass, pt=J.pt, eta=J.eta)
             
         JJ = J0 + J1
 
-        output["JJ"].fill(
+        output["AK8JJ"].fill(
             dataset=dataset,
             mass = JJ.mass,
             pt = JJ.pt,
             eta = JJ.eta,
         )
 
-        JJ=JJ[JJ.mass>500]
-        output["JJ_mJJ500"].fill(
+        JJ_500=JJ[JJ.mass>500]
+        output["AK8JJ_mJJ500"].fill(
             dataset=dataset,
-            mass = JJ.mass,
-            pt = JJ.pt,
-            eta = JJ.eta,
+            mass = JJ_500.mass,
+            pt = JJ_500.pt,
+            eta = JJ_500.eta,
+        )
+
+        ntops = ak.num( events.GenPart[abs(events.GenPart.pdgId)==6] )
+        Js_topveto = Js[cut & (ntops==0)]
+        J0_topveto,J1_topveto = Js_topveto[:,0],Js_topveto[:,1]
+        for iJ,J in enumerate([J0_topveto,J1_topveto]):
+            output[f'AK8J{iJ}_topveto'].fill(dataset=dataset,mass = J.mass,pt = J.pt,eta = J.eta)
+
+        JJ_topveto = J0_topveto+J1_topveto
+        output['AK8JJ_topveto'].fill(
+            dataset=dataset,
+            mass = JJ_topveto.mass,
+            pt = JJ_topveto.pt,
+            eta = JJ_topveto.eta,
         )
 
         # vbf jets
 
-        js = events.Jet
+        # js = events.Jet
+        js = events.GenJet
         cut = (ak.num(js) >=2)
 
         j0,j1 = js[cut][:,0],js[cut][:,1]
 
         for ij,j in enumerate([j0,j1]):
-            output[f'j{ij}'].fill(dataset=dataset, mass=j.mass, pt=j.pt, eta=j.eta)
+            output[f'AK4j{ij}'].fill(dataset=dataset, mass=j.mass, pt=j.pt, eta=j.eta)
             
         jj = j0 + j1
 
-        output["jj"].fill(
+        output["AK4jj"].fill(
             dataset=dataset,
             mass = jj.mass,
             pt = jj.pt,
@@ -100,7 +120,7 @@ class NanoProcessor(processor.ProcessorABC):
         )
 
         jj = jj[jj.mass>500]
-        output["jj_mjj500"].fill(
+        output["AK4jj_mjj500"].fill(
             dataset=dataset,
             mass = jj.mass,
             pt = jj.pt,
