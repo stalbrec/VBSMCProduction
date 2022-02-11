@@ -5,7 +5,7 @@ ak.behavior.update(candidate.behavior)
 from coffea import hist
 
 class NanoProcessor(processor.ProcessorABC):
-    def __init__(self):
+    def __init__(self,aQGC):
         def get_common_axes(var_name,max_pt=2000,max_mass=2000):
             return (
                 hist.Cat("dataset", "Dataset"),
@@ -14,7 +14,7 @@ class NanoProcessor(processor.ProcessorABC):
                 hist.Bin("eta", r"$\eta_{\mathrm{%s}}$ [GeV]"%var_name, 60, -6,6),
             )
         
-        self._accumulator = processor.dict_accumulator({
+        accumulator = {
             "sumw": processor.defaultdict_accumulator(float),
             "VV": hist.Hist("Events",*get_common_axes("VV",max_mass=3000,max_pt=3000)),
             
@@ -30,8 +30,44 @@ class NanoProcessor(processor.ProcessorABC):
             "AK4j0": hist.Hist("Events",*get_common_axes("leading Ak4",max_mass=300)),
             "AK4j1": hist.Hist("Events",*get_common_axes("sub-leading Ak4",max_mass=300)),
             "AK4jj": hist.Hist("Events",*get_common_axes("jj",max_mass=3000,max_pt=3000)),
-            "AK4jj_mjj500": hist.Hist("Events",*get_common_axes("jj",max_mass=3000,max_pt=3000)),
-        })
+            "AK4jj_mjj500": hist.Hist("Events",*get_common_axes("jj",max_mass=3000,max_pt=3000)),            
+        }
+
+        
+        if(aQGC):
+            self.smeft_points_dict = {
+                "S0":['0p00'],
+                "S1":['0p00'],
+                "S2":['0p00'],
+                "M0":['0p00'],
+                "M1":['0p00'],
+                "M2":['0p00'],
+                "M3":['0p00'],
+                "M4":['0p00'],
+                "M5":['0p00'],
+                "M6":['0p00'],
+                "M7":['0p00'],
+                "T0":['0p00'],
+                "T1":['0p00'],
+                "T2":['0p00'],
+                "T3":['0p00'],
+                "T4":['0p00'],
+                "T5":['0p00'],
+                "T6":['0p00'],
+                "T7":['0p00'],
+                "T8":['0p00'],
+                "T9":['0p00'],
+            }
+            self.smeft_points = []
+            for name,points_list in self.smeft_points_dict.items():
+                for point in points_list:
+                    self.smeft_points.append(f'f{name.lower()}_{point}')
+            print(self.smeft_points)
+            # accumulator.update({
+            #     ''
+            # })
+        
+        self._accumulator = processor.dict_accumulator(accumulator)
 
     @property
     def accumulator(self):
@@ -134,3 +170,5 @@ class NanoProcessor(processor.ProcessorABC):
 
     def postprocess(self, accumulator):
         return accumulator
+if(__name__ == '__main__'):
+    NanoProcessor(True)
