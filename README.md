@@ -12,6 +12,12 @@ required packages:
 - [mplhep](https://github.com/scikit-hep/mplhep)
 - [scikit-hep](https://github.com/scikit-hep/scikit-hep)
 
+## LHE Particle Printer
+required packages:
+- [scikit-image](https://github.com/scikit-hep/scikit-image) for fast implementation of bresenham algorithm 
+- [asciiplotter](https://github.com/stalbrec/asciiplotter)
+- my fork of `pylhe` (see below)
+
 
 ## nanoAOD style LHE-root files
 
